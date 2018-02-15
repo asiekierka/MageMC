@@ -36,15 +36,13 @@ import net.minecraft.init.Blocks;
 import net.minecraft.potion.Potion;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.relauncher.ReflectionHelper;
-import pl.asie.mage.MageMod;
 import pl.asie.mage.api.IMagePlugin;
 import pl.asie.mage.api.MageApprentice;
-import pl.asie.mage.api_experimental.event.ColorPaletteUpdateEvent;
+import pl.asie.mage.api_experimental.event.ColorPaletteDataReloadEvent;
 import pl.asie.mage.util.colorspace.Colorspaces;
 
 import javax.annotation.Nullable;
@@ -54,7 +52,7 @@ import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Set;
 
-@MageApprentice(value = "mcpatcher:customColors", description = "Adds MCPatcher-compatible recoloring support for resource packs.")
+/* @MageApprentice(value = "mcpatcher:customColors", description = "Adds partial MCPatcher-compatible recoloring support for resource packs. WIP.") */
 public class MageMCPatcherCustomColors implements IMagePlugin {
 	private final TObjectIntMap<Potion> originalColors = new TObjectIntHashMap<>();
 	private int[] originalColorCode;
@@ -70,51 +68,55 @@ public class MageMCPatcherCustomColors implements IMagePlugin {
 	}
 
 	@SubscribeEvent
-	public void onColorPaletteUpdate(ColorPaletteUpdateEvent event) {
-		try {
-			Field f = ReflectionHelper.findField(FontRenderer.class, "colorCode", "field_78285_g");
-			int[] colorCode = (int[]) f.get(Minecraft.getMinecraft().fontRenderer);
+	public void onColorPaletteUpdate(ColorPaletteDataReloadEvent event) {
+		if (event.hasAnyColor("minecraft:font_renderer")) {
+			try {
+				Field f = ReflectionHelper.findField(FontRenderer.class, "colorCode", "field_78285_g");
+				int[] colorCode = (int[]) f.get(Minecraft.getMinecraft().fontRenderer);
 
-			if (originalColorCode == null) {
-				originalColorCode = Arrays.copyOf(colorCode, colorCode.length);
-			}
-
-			for (int i = 0; i < 32; i++) {
-				String key = Integer.toString(i);
-				System.out.println(key);
-				if (event.hasColor("minecraft:font_renderer", key)) {
-					colorCode[i] = Colorspaces.rgbFloatToInt(event.getColor("minecraft:font_renderer", key));
-				} else {
-					colorCode[i] = originalColorCode[i];
+				if (originalColorCode == null) {
+					originalColorCode = Arrays.copyOf(colorCode, colorCode.length);
 				}
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
 
-		try {
-			Field f = ReflectionHelper.findField(Potion.class, "liquidColor", "field_76414_N");
-
-			if (!originalColors.isEmpty()) {
-				for (Potion p : Potion.REGISTRY) {
-					if (originalColors.containsKey(p)) {
-						f.set(p, originalColors.get(p));
+				for (int i = 0; i < 32; i++) {
+					String key = Integer.toString(i);
+					System.out.println(key);
+					if (event.hasColor("minecraft:font_renderer", key)) {
+						colorCode[i] = Colorspaces.rgbFloatToInt(event.getColor("minecraft:font_renderer", key));
+					} else {
+						colorCode[i] = originalColorCode[i];
 					}
 				}
-
-				originalColors.clear();
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
+		}
 
-			for (Potion p : Potion.REGISTRY) {
-				ResourceLocation loc = p.getRegistryName();
-				String name = loc.getResourceDomain().equals("minecraft") ? loc.getResourcePath() : loc.toString();
-				if (event.hasColor("minecraft:potion", name)) {
-					originalColors.put(p, p.getLiquidColor());
-					f.set(p, Colorspaces.rgbFloatToInt(event.getColor("minecraft:potion", name)));
+		if (event.hasAnyColor("minecraft:potion")) {
+			try {
+				Field f = ReflectionHelper.findField(Potion.class, "liquidColor", "field_76414_N");
+
+				if (!originalColors.isEmpty()) {
+					for (Potion p : Potion.REGISTRY) {
+						if (originalColors.containsKey(p)) {
+							f.set(p, originalColors.get(p));
+						}
+					}
+
+					originalColors.clear();
 				}
+
+				for (Potion p : Potion.REGISTRY) {
+					ResourceLocation loc = p.getRegistryName();
+					String name = loc.getResourceDomain().equals("minecraft") ? loc.getResourcePath() : loc.toString();
+					if (event.hasColor("minecraft:potion", name)) {
+						originalColors.put(p, p.getLiquidColor());
+						f.set(p, Colorspaces.rgbFloatToInt(event.getColor("minecraft:potion", name)));
+					}
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
-		} catch (Exception e) {
-			e.printStackTrace();
 		}
 	}
 

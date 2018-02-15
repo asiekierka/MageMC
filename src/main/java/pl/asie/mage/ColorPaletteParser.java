@@ -29,7 +29,7 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import org.apache.commons.io.IOUtils;
-import pl.asie.mage.api_experimental.event.ColorPaletteUpdateEvent;
+import pl.asie.mage.api_experimental.event.ColorPaletteDataReloadEvent;
 import pl.asie.mage.util.colorspace.Colorspaces;
 
 import java.io.FileNotFoundException;
@@ -79,6 +79,10 @@ public final class ColorPaletteParser {
 
 	}
 
+	public boolean hasAnyColor(String namespace) {
+		return data.palettes.containsKey(namespace) && !data.palettes.get(namespace).isEmpty();
+	}
+
 	public boolean hasColor(String namespace, String color) {
 		return data.palettes.containsKey(namespace) && data.palettes.get(namespace).containsKey(color);
 	}
@@ -126,6 +130,8 @@ public final class ColorPaletteParser {
 						}
 					} else if (key.startsWith("text.code.")) {
 						this.data.add("minecraft:font_renderer", key.substring(10), valueRGB);
+					} else if (key.equals("lilypad")) {
+						this.data.add("minecraft:lilypad", "lilypad", valueRGB);
 					} else {
 						MageMod.logger.warn("Unsupported MCPatcher key: " + key);
 					}
@@ -153,6 +159,6 @@ public final class ColorPaletteParser {
 			e.printStackTrace();
 		}
 
-		MinecraftForge.EVENT_BUS.post(new ColorPaletteUpdateEvent(this));
+		MinecraftForge.EVENT_BUS.post(new ColorPaletteDataReloadEvent(this));
 	}
 }

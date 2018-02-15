@@ -33,6 +33,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import pl.asie.mage.api.IMagePlugin;
 import pl.asie.mage.api.MageApprentice;
+import pl.asie.mage.util.colorspace.Colorspaces;
 
 import java.io.File;
 import java.util.HashSet;
@@ -47,12 +48,18 @@ import java.util.Set;
 )
 public class MageMod implements IResourceManagerReloadListener {
 	public static Logger logger;
-	private final Set<IMagePlugin> pluginSet = new HashSet<>();
+	private static final Set<String> loadedPlugins = new HashSet<>();
+	private static final Set<IMagePlugin> pluginSet = new HashSet<>();
+
+	public static boolean isPluginLoaded(String name) {
+		return loadedPlugins.contains(name);
+	}
 
 	@Mod.EventHandler
 	public void preInit(FMLPreInitializationEvent event) {
 		logger = LogManager.getLogger("mage");
 		MinecraftForge.EVENT_BUS.register(ColorPaletteParser.INSTANCE);
+		Colorspaces.init();
 
 		String p = event.getSuggestedConfigurationFile().getPath();
 		File configPath = new File(p.substring(0, p.lastIndexOf('.')));
@@ -72,7 +79,17 @@ public class MageMod implements IResourceManagerReloadListener {
 					try {
 						Object o = Class.forName(plugin.getClassName()).newInstance();
 						if (o instanceof IMagePlugin) {
+							loadedPlugins.add(name);
 							pluginSet.add((IMagePlugin) o);
+
+							IMagePlugin magePlugin = (IMagePlugin) o;
+							if (magePlugin.hasConfig()) {
+								Configuration c = new Configuration(new File(configPath, name.replaceAll(":", ".") + ".cfg"));
+								magePlugin.onConfigReload(c);
+								if (c.hasChanged()) {
+									c.save();
+								}
+							}
 						} else {
 							logger.warn(plugin.getClassName() + " apprentice is not an IMagePlugin!");
 						}

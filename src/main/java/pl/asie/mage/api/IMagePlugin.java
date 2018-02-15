@@ -32,6 +32,13 @@ import net.minecraftforge.common.config.Configuration;
  * The plugins will automatically be put on the Forge event bus.
  */
 public interface IMagePlugin {
+	default boolean hasConfig() {
+		return false;
+	}
+	default void onConfigReload(Configuration config) {
+
+	}
+
 	default void init() {}
 	default void onResourceReload(IResourceManager manager) {}
 }

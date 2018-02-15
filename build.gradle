@@ -50,7 +50,7 @@ dependencies {
 
 license {
 	sourceSets = [project.sourceSets.main]
-	header = project.file("docs/licenses/COPYING")
+	header = project.file("docs/licenses/LICENSE")
 	ignoreFailures = true
 	exclude '**/*.lang'
 	exclude '**/*.info'

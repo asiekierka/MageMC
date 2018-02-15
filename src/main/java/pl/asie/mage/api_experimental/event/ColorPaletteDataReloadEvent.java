@@ -23,10 +23,10 @@ import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.fml.common.eventhandler.Event;
 import pl.asie.mage.ColorPaletteParser;
 
-public class ColorPaletteUpdateEvent extends Event {
+public class ColorPaletteDataReloadEvent extends Event {
 	private final ColorPaletteParser parser;
 
-	public ColorPaletteUpdateEvent(ColorPaletteParser parser) {
+	public ColorPaletteDataReloadEvent(ColorPaletteParser parser) {
 		this.parser = parser;
 	}
 
@@ -36,5 +36,9 @@ public class ColorPaletteUpdateEvent extends Event {
 
 	public float[] getColor(String namespace, String color) {
 		return parser.getColor(namespace, color);
+	}
+
+	public boolean hasAnyColor(String namespace) {
+		return parser.hasAnyColor(namespace);
 	}
 }
