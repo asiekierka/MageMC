@@ -101,7 +101,7 @@ public final class ColorPaletteParser {
 		this.data.version = 1;
 		this.data.palettes = new HashMap<>();
 
-		try {
+		/* try {
 			for (IResource resource : Minecraft.getMinecraft().getResourceManager().getAllResources(COLOR_PALETTE_MCPATCHER_LOC)) {
 				String[] strings = IOUtils.toString(resource.getInputStream(), Charsets.UTF_8).split("\n");
 				for (String s : strings) {
@@ -141,8 +141,7 @@ public final class ColorPaletteParser {
 			// pass
 		} catch (IOException e) {
 			e.printStackTrace();
-		}
-
+		} */
 
 		try {
 			for (IResource resource : Minecraft.getMinecraft().getResourceManager().getAllResources(COLOR_PALETTE_LOC)) {
