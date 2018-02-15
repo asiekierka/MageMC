@@ -20,10 +20,13 @@
 package pl.asie.mage.plugins;
 
 import com.google.common.collect.ImmutableSet;
+import gnu.trove.map.TIntObjectMap;
+import gnu.trove.map.hash.TIntObjectHashMap;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.client.renderer.texture.TextureUtil;
 import net.minecraft.client.resources.IResource;
+import net.minecraft.client.resources.IResourceManager;
 import net.minecraft.init.MobEffects;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.MathHelper;
@@ -44,13 +47,15 @@ import java.util.Collection;
 
 @MageApprentice(value = "mage:customLightmap", description = "Adds MCPatcher-compatible custom lightmap support.")
 public class MageCustomLightmap implements IMagePlugin {
+	private final TIntObjectMap<BufferedImage> images = new TIntObjectHashMap<>();
+
 	private Collection<ResourceLocation> getLocations(World w) {
 		int d = w.provider.getDimension();
 		ImmutableSet.Builder<ResourceLocation> builder = new ImmutableSet.Builder<>();
 		builder.add(
-				new ResourceLocation("mage:lightmap/world" + d + ".png"),
-				new ResourceLocation("minecraft:mcpatcher/lightmap/world" + d + ".png"),
-				new ResourceLocation("mage:lightmap/world.png")
+//				new ResourceLocation("mage:lightmap/world" + d + ".png"),
+				new ResourceLocation("minecraft:mcpatcher/lightmap/world" + d + ".png") //,
+//				new ResourceLocation("mage:lightmap/world.png")
 		);
 
 		// heuristics - apply the closest world map we can find
@@ -66,6 +71,11 @@ public class MageCustomLightmap implements IMagePlugin {
 	@Override
 	public void init() {
 		MinecraftForge.EVENT_BUS.register(this);
+	}
+
+	@Override
+	public void onResourceReload(IResourceManager manager) {
+		images.clear();
 	}
 
 	private float pow4(float v) {
@@ -91,14 +101,10 @@ public class MageCustomLightmap implements IMagePlugin {
 			float[] skyColor = Colorspaces.rgbIntToFloat(image.getRGB(skyPosX, yOffset + (i / 16)));
 			float[] blockColor = Colorspaces.rgbIntToFloat(image.getRGB(blockPosX, yOffset + 16 + (i % 16)));
 			float[] color = new float[] {
-					skyColor[0] + blockColor[0],
-					skyColor[1] + blockColor[1],
-					skyColor[2] + blockColor[2]
+					Math.min(skyColor[0] + blockColor[0], 1.0f),
+					Math.min(skyColor[1] + blockColor[1], 1.0f),
+					Math.min(skyColor[2] + blockColor[2], 1.0f)
 			};
-
-			if (color[0] > 1.0f) color[0] = 1.0f;
-			if (color[1] > 1.0f) color[1] = 1.0f;
-			if (color[2] > 1.0f) color[2] = 1.0f;
 
 			if (!hasCustomNightVision && isNightVisionActive) {
 				// TODO: Use getNightVisionBrightness
@@ -126,30 +132,41 @@ public class MageCustomLightmap implements IMagePlugin {
 	@SubscribeEvent(priority = EventPriority.HIGHEST)
 	public void onLightmapUpdate(LightmapUpdateEvent event) {
 		WorldClient world = Minecraft.getMinecraft().world;
-		IResource resource = null;
-		for (ResourceLocation location : getLocations(world)) {
-			try {
-				resource = Minecraft.getMinecraft().getResourceManager().getResource(location);
-			} catch (IOException e) {
+		int d = world.provider.getDimension();
+		if (!images.containsKey(d)) {
+			BufferedImage image = null;
+			IResource resource = null;
 
+			for (ResourceLocation location : getLocations(world)) {
+				try {
+					resource = Minecraft.getMinecraft().getResourceManager().getResource(location);
+				} catch (IOException e) {
+
+				}
+
+				if (resource != null) {
+					break;
+				}
 			}
 
 			if (resource != null) {
-				break;
+				try {
+					image = TextureUtil.readBufferedImage(resource.getInputStream());
+					if (image.getHeight() != 32 && image.getHeight() != 64) {
+						MageMod.logger.warn("Unsupported lightmap height: " + image.getHeight());
+						image = null;
+					}
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
+
+			images.put(d, image);
 		}
 
-		if (resource != null) {
-			try {
-				BufferedImage image = TextureUtil.readBufferedImage(resource.getInputStream());
-				if (image.getHeight() != 32 && image.getHeight() != 64) {
-					MageMod.logger.warn("Unsupported lightmap height: " + image.getHeight());
-				} else {
-					applyCustomLightmap(event, world, image);
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+		BufferedImage image = images.get(d);
+		if (image != null) {
+			applyCustomLightmap(event, world, image);
 		}
 	}
 }

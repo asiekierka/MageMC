@@ -23,12 +23,14 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.IReloadableResourceManager;
 import net.minecraft.client.resources.IResourceManager;
 import net.minecraft.client.resources.IResourceManagerReloadListener;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.discovery.ASMDataTable;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
-import org.apache.logging.log4j.core.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import pl.asie.mage.api.IMagePlugin;
 import pl.asie.mage.api.MageApprentice;
 
@@ -49,6 +51,9 @@ public class MageMod implements IResourceManagerReloadListener {
 
 	@Mod.EventHandler
 	public void preInit(FMLPreInitializationEvent event) {
+		logger = LogManager.getLogger("mage");
+		MinecraftForge.EVENT_BUS.register(ColorPaletteParser.INSTANCE);
+
 		String p = event.getSuggestedConfigurationFile().getPath();
 		File configPath = new File(p.substring(0, p.lastIndexOf('.')));
 		if (!configPath.exists()) {
