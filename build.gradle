@@ -113,3 +113,18 @@ dependencies {
 	compile 'com.elytradev:mini:0.2-SNAPSHOT'
 	shadow 'com.elytradev:mini:0.2-SNAPSHOT'
 }
+
+task signJar(type: SignJar, dependsOn: jar) {
+    onlyIf {
+        project.hasProperty('keyStore')
+    }
+
+    keyStore = project.keyStore
+    alias = project.keyStoreAlias
+    storePass = project.keyStorePass
+    keyPass = project.keyStoreKeyPass
+    inputFile = jar.archivePath
+    outputFile = jar.archivePath
+}
+
+build.dependsOn(signJar)
