@@ -1,0 +1,17 @@
+{
+    "modListVersion": 2,
+    "modList": [
+        {
+            "modid": "mage",
+            "name": "MAGE",
+            "version": "${version}",
+            "mcversion": "${mcversion}",
+            "description": "Mildly Advanced Graphics Extensions",
+            "authorList": [
+                "asiekierka"
+            ],
+            "url": "http://asie.pl",
+            "updateUrl": "http://asie.pl/files/minecraft/update/mage.json"
+        }
+    ]
+}
