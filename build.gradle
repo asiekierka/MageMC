@@ -90,6 +90,9 @@ processResources {
 
 jar {
 	classifier = 'slim'
+	manifest.attributes "Manifest-Version": "1.0"
+	manifest.attributes "FMLCorePluginContainsFMLMod": "true"
+	manifest.attributes "FMLCorePlugin": "pl.asie.mage.core.MageCoremod"
 }
 
 
@@ -97,6 +100,9 @@ shadowJar {
 	classifier = ''
 	relocate 'com.elytradev.mini', 'pl.asie.mage.core.repackage.com.elytradev.mini'
 	configurations = [project.configurations.shadow]
+	manifest.attributes "Manifest-Version": "1.0"
+	manifest.attributes "FMLCorePluginContainsFMLMod": "true"
+	manifest.attributes "FMLCorePlugin": "pl.asie.mage.core.MageCoremod"
 }
 
 reobf {
@@ -114,7 +120,7 @@ dependencies {
 	shadow 'com.elytradev:mini:0.2-SNAPSHOT'
 }
 
-task signJar(type: SignJar, dependsOn: jar) {
+task signShadowJar(type: SignJar, dependsOn: shadowJar) {
     onlyIf {
         project.hasProperty('keyStore')
     }
@@ -123,8 +129,8 @@ task signJar(type: SignJar, dependsOn: jar) {
     alias = project.keyStoreAlias
     storePass = project.keyStorePass
     keyPass = project.keyStoreKeyPass
-    inputFile = jar.archivePath
-    outputFile = jar.archivePath
+    inputFile = shadowJar.archivePath
+    outputFile = shadowJar.archivePath
 }
 
-build.dependsOn(signJar)
+build.dependsOn(signShadowJar)

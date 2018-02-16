@@ -191,6 +191,8 @@ public class MageCustomLightmap implements IMagePlugin {
 		}
 
 		BufferedImage image = images.get(d);
-		applyCustomLightmap(event, world, image);
+		if (image != null) {
+			applyCustomLightmap(event, world, image);
+		}
 	}
 }

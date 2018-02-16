@@ -38,7 +38,7 @@ public class EntityRendererTransformer extends MiniTransformer {
 	public void patchUpdateLightmap(PatchContext ctx) {
 		boolean isObf = !ctx.getMethodName().equals("updateLightmap");
 		ctx.jumpToStart();
-		ctx.search(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "net/minecraft/client/renderer/texture/DynamicTexture", "updateDynamicTexture", "()V", false))
+		ctx.search(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "net/minecraft/client/renderer/texture/DynamicTexture", isObf ? "func_110564_a" : "updateDynamicTexture", "()V", false))
 				.jumpBefore();
 		ctx.add(
 				new VarInsnNode(Opcodes.ALOAD, 0),
