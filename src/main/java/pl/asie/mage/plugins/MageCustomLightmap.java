@@ -31,6 +31,7 @@ import net.minecraft.init.MobEffects;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldProvider;
 import net.minecraft.world.WorldProviderEnd;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
@@ -39,6 +40,7 @@ import pl.asie.mage.MageMod;
 import pl.asie.mage.api.IMagePlugin;
 import pl.asie.mage.api.MageApprentice;
 import pl.asie.mage.api.event.LightmapUpdateEvent;
+import pl.asie.mage.util.MethodHandleHelper;
 import pl.asie.mage.util.Utils;
 import pl.asie.mage.util.colorspace.Colorspace;
 import pl.asie.mage.util.colorspace.Colorspaces;
@@ -54,19 +56,19 @@ public class MageCustomLightmap implements IMagePlugin {
 	private Collection<ResourceLocation> getLocations(World w) {
 		int d = w.provider.getDimension();
 		ImmutableSet.Builder<ResourceLocation> builder = new ImmutableSet.Builder<>();
-		builder.add(
-//				new ResourceLocation("mage:lightmap/world" + d + ".png"),
-				new ResourceLocation("minecraft:mcpatcher/lightmap/world" + d + ".png") //,
-//				new ResourceLocation("mage:lightmap/world.png")
-		);
+		builder.add(new ResourceLocation("minecraft:mcpatcher/lightmap/world" + d + ".png"));
 
-		// heuristics - apply the closest world map we can find
-		if (w.provider.isNether() && d != -1) {
-			builder.add(new ResourceLocation("minecraft:mcpatcher/lightmap/world-1.png"));
-		} else if (w.provider.isSurfaceWorld() && d != 0) {
-			builder.add(new ResourceLocation("minecraft:mcpatcher/lightmap/world0.png"));
-		} else if (w.provider instanceof WorldProviderEnd && d != 1) {
-			builder.add(new ResourceLocation("minecraft:mcpatcher/lightmap/world1.png"));
+		// heuristics - apply the closest world map we can find, but only if
+		// the mod doesn't provide custom lightmap logic
+		if (!MethodHandleHelper.overrides(w.provider.getClass(), WorldProvider.class, "getLightmapColors", "getLightmapColors",
+				float.class, float.class, float.class, float.class, float[].class)) {
+			if (w.provider.isNether() && d != -1) {
+				builder.add(new ResourceLocation("minecraft:mcpatcher/lightmap/world-1.png"));
+			} else if (w.provider.isSurfaceWorld() && d != 0) {
+				builder.add(new ResourceLocation("minecraft:mcpatcher/lightmap/world0.png"));
+			} else if (w.provider instanceof WorldProviderEnd && d != 1) {
+				builder.add(new ResourceLocation("minecraft:mcpatcher/lightmap/world1.png"));
+			}
 		}
 
 		return builder.build();
