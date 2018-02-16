@@ -20,6 +20,7 @@
 package pl.asie.mage;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Function;
 import com.google.gson.Gson;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.IResource;
@@ -29,21 +30,51 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.tuple.Triple;
 import pl.asie.mage.api_experimental.event.ColorPaletteDataReloadEvent;
 import pl.asie.mage.util.colorspace.Colorspaces;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.function.BiConsumer;
 
 public final class ColorPaletteParser {
 	public static final ColorPaletteParser INSTANCE = new ColorPaletteParser();
+	private static final List<Triple<String, String, BiConsumer<String, Collection<String>>>> mcPatcherPatches = new ArrayList<>();
 	private final Gson gson = new Gson();
 	private final ResourceLocation COLOR_PALETTE_LOC = new ResourceLocation("mage", "color_palette.json");
 	private final ResourceLocation COLOR_PALETTE_MCPATCHER_LOC = new ResourceLocation("minecraft", "mcpatcher/color.properties");
 	private Data data;
+
+	static {
+		mcPatcherPatches.add(Triple.of("particle", "minecraft:particle", ColorPaletteParser::addOldMinecraftName));
+		mcPatcherPatches.add(Triple.of("potion", "minecraft:potion", ColorPaletteParser::addOldMinecraftName));
+		mcPatcherPatches.add(Triple.of("text.code", "minecraft:font_renderer", ColorPaletteParser::addName));
+		mcPatcherPatches.add(Triple.of("lilypad", "minecraft:lilypad", (str, list) -> list.add("lilypad")));
+	}
+
+	private static void addName(String name, Collection<String> list) {
+		list.add(name);
+	}
+
+	private static void addOldMinecraftName(String potionName, Collection<String> list) {
+		String oldPotionName = potionName;
+		list.add(potionName);
+		// reformat to post-1.11 name format
+		for (int i = 0; i < potionName.length(); i++) {
+			char c = potionName.charAt(i);
+			if (c >= 65 && c <= 90) {
+				String p = potionName.substring(0, i) + "_" + potionName.substring(i, i + 1).toLowerCase();
+				potionName = i == potionName.length() - 1 ? p : p + potionName.substring(i + 1);
+				i = i + 1;
+			}
+		}
+		if (!potionName.equals(oldPotionName)) {
+			list.add(potionName);
+		}
+	}
 
 	private static class Data {
 		public int version;
@@ -101,7 +132,7 @@ public final class ColorPaletteParser {
 		this.data.version = 1;
 		this.data.palettes = new HashMap<>();
 
-		/* try {
+		try {
 			for (IResource resource : Minecraft.getMinecraft().getResourceManager().getAllResources(COLOR_PALETTE_MCPATCHER_LOC)) {
 				String[] strings = IOUtils.toString(resource.getInputStream(), Charsets.UTF_8).split("\n");
 				for (String s : strings) {
@@ -111,29 +142,31 @@ public final class ColorPaletteParser {
 					}
 					String key = s.substring(0, s.indexOf("=")).trim();
 					String value = s.substring(s.indexOf("=") + 1).trim();
-					int valueRGB = Integer.parseInt(value, 16);
-					if (key.startsWith("potion.")) {
-						String potionName = key.substring(7);
-						String oldPotionName = potionName;
-						this.data.add("minecraft:potion", potionName, valueRGB);
-						// reformat to post-1.11 name format
-						for (int i = 0; i < potionName.length(); i++) {
-							char c = potionName.charAt(i);
-							if (c >= 65 && c <= 90) {
-								String p = potionName.substring(0, i) + "_" + potionName.substring(i, i + 1).toLowerCase();
-								potionName = i == potionName.length() - 1 ? p : p + potionName.substring(i + 1);
-								i = i + 1;
+
+					Triple<String, String, BiConsumer<String, Collection<String>>> triple = null;
+
+					for (Triple<String, String, BiConsumer<String, Collection<String>>> t : mcPatcherPatches) {
+						if (key.startsWith(t.getLeft())) {
+							if (triple == null || triple.getLeft().length() < t.getLeft().length()) {
+								triple = t;
 							}
 						}
-						if (!potionName.equals(oldPotionName)) {
-							this.data.add("minecraft:potion", potionName, valueRGB);
+					}
+
+					try {
+						if (triple != null) {
+							int valueRGB = Integer.parseInt(value, 16);
+							Collection<String> targetKeys = new ArrayList<>();
+							int keyLen = triple.getLeft().length();
+							triple.getRight().accept(key.length() == keyLen ? "" : key.substring(keyLen + 1), targetKeys);
+							for (String tk : targetKeys) {
+								this.data.add(triple.getMiddle(), tk, valueRGB);
+							}
+						} else {
+							MageMod.logger.warn("Unsupported MCPatcher key: " + key);
 						}
-					} else if (key.startsWith("text.code.")) {
-						this.data.add("minecraft:font_renderer", key.substring(10), valueRGB);
-					} else if (key.equals("lilypad")) {
-						this.data.add("minecraft:lilypad", "lilypad", valueRGB);
-					} else {
-						MageMod.logger.warn("Unsupported MCPatcher key: " + key);
+					} catch (NumberFormatException e) {
+						e.printStackTrace();
 					}
 				}
 			}
@@ -141,7 +174,7 @@ public final class ColorPaletteParser {
 			// pass
 		} catch (IOException e) {
 			e.printStackTrace();
-		} */
+		}
 
 		try {
 			for (IResource resource : Minecraft.getMinecraft().getResourceManager().getAllResources(COLOR_PALETTE_LOC)) {

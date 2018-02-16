@@ -28,4 +28,9 @@ public class MageCoremod extends MiniCoremod {
 	public MageCoremod() {
 		super(EntityRendererTransformer.class);
 	}
+
+	@Override
+	public String getAccessTransformerClass() {
+		return "pl.asie.mage.core.MageAT";
+	}
 }
