@@ -34,4 +34,5 @@ public @interface MageApprentice {
 	String value();
 	String description() default "";
 	boolean isDefault() default true;
+	boolean canDisableRuntime() default false;
 }

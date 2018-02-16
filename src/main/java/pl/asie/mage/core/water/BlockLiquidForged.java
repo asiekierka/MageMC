@@ -17,7 +17,7 @@
  * along with MAGE.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pl.asie.mage.plugins.smoothwater;
+package pl.asie.mage.core.water;
 
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.material.Material;
@@ -30,6 +30,7 @@ import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.common.property.IExtendedBlockState;
 import net.minecraftforge.fluids.BlockFluidBase;
 import net.minecraftforge.fluids.IFluidBlock;
+import pl.asie.mage.plugins.MageSmoothWater;
 
 import javax.annotation.Nonnull;
 

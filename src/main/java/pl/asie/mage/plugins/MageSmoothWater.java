@@ -17,7 +17,7 @@
  * along with MAGE.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pl.asie.mage.plugins.smoothwater;
+package pl.asie.mage.plugins;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockDynamicLiquid;
@@ -54,9 +54,12 @@ import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.fml.relauncher.ReflectionHelper;
 import pl.asie.mage.api.IMagePlugin;
 import pl.asie.mage.api.MageApprentice;
+import pl.asie.mage.core.water.BlockLiquidForged;
 
 import java.lang.reflect.Field;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 @MageApprentice(value = "mage:smoothWater", description = "Makes vanilla water rendering smoothly lit and fixes under-liquid ambient occlusion.")
 public class MageSmoothWater implements IMagePlugin {
@@ -64,7 +67,7 @@ public class MageSmoothWater implements IMagePlugin {
 	public static boolean patchModdedFluidAO = false;
 
 	@Override
-	public void init() {
+	public void enable() {
 		MinecraftForge.EVENT_BUS.register(this);
 		isActive = true;
 	}
@@ -142,17 +145,22 @@ public class MageSmoothWater implements IMagePlugin {
 
 	@SubscribeEvent
 	public void onModelBake(ModelBakeEvent event) {
+		Map<Fluid, IBakedModel> tmpMap = new HashMap<>();
+
 		for (Block b : ForgeRegistries.BLOCKS) {
 			if (b instanceof BlockLiquid) {
 				Fluid f = getFluid(b);
 				if (f != null) {
-					ModelFluid fluid = new ModelFluid(f);
-					IBakedModel baked = fluid.bake(
-							TRSRTransformation.identity(),
-							DefaultVertexFormats.ITEM,
-							ModelLoader.defaultTextureGetter()
+					event.getModelRegistry().putObject(new ModelResourceLocation(b.getRegistryName(), "fluid"),
+						tmpMap.computeIfAbsent(f, (ff) -> {
+							ModelFluid fluid = new ModelFluid(ff);
+							return fluid.bake(
+									TRSRTransformation.identity(),
+									DefaultVertexFormats.ITEM,
+									ModelLoader.defaultTextureGetter()
+							);
+						})
 					);
-					event.getModelRegistry().putObject(new ModelResourceLocation(b.getRegistryName(), "fluid"), baked);
 				}
 			}
 		}

@@ -22,25 +22,11 @@
 
 package pl.asie.mage.api;
 
-import net.minecraft.client.resources.IResourceManager;
-import net.minecraftforge.common.config.Configuration;
+import net.minecraft.client.Minecraft;
+import pl.asie.mage.MageMod;
 
-/**
- * Attach this interface to MAGE plugins. Don't forget to mark them with
- * the MageApprentice annotation!
- *
- * The plugins will automatically be put on the Forge event bus.
- */
-public interface IMagePlugin {
-	default boolean hasConfig() {
-		return false;
-	}
-	default void onConfigReload(Configuration config) {
+public final class MageAPI {
+	private MageAPI() {
 
 	}
-
-	default void enable() {}
-	default void disable() {}
-
-	default void onResourceReload(IResourceManager manager) {}
 }

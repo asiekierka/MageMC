@@ -34,13 +34,72 @@ import pl.asie.mage.api.event.LightmapUpdateEvent;
 import pl.asie.mage.util.colorspace.Colorspace;
 import pl.asie.mage.util.colorspace.Colorspaces;
 
-@MageApprentice(value = "mage:trueDarkness", description = "Modifies the existing lightmaps to provide true darkness at night or in dark areas.", isDefault = false)
+@MageApprentice(value = "mage:trueDarkness", description = "Modifies the existing lightmaps to provide true darkness at night or in dark areas.", isDefault = false, canDisableRuntime = true)
 public class MageTrueDarkness implements IMagePlugin {
-	private TIntSet allowedDimensions = new TIntHashSet(), blockedDimensions = new TIntHashSet();
+	public static class FeatureDimensionManager {
+		public FeatureDimensionManager(Configuration config, String category, boolean def) {
+			enabled = config.getBoolean("enabled", category, def, "Is the feature enabled?");
+			String allowedDimensionsStr = config.getString("allowedDimensions", category, "", "Comma-delimited list of dimensions in which the feature is enabled. If empty, no whitelisting is applied!");
+			String blockedDimensionsStr = config.getString("blockedDimensions", category, "", "Comma-delimited list of dimensions in which the feature is disabled.");
+
+			applyToSet(allowedDimensions, allowedDimensionsStr);
+			applyToSet(blockedDimensions, blockedDimensionsStr);
+		}
+
+		private final TIntSet allowedDimensions = new TIntHashSet();
+		private final TIntSet blockedDimensions = new TIntHashSet();
+		private boolean enabled;
+
+		private void applyToSet(TIntSet set, String ss) {
+			set.clear();
+			for (String s : ss.split(",")) {
+				try {
+					set.add(Integer.parseInt(s.trim()));
+				} catch (NumberFormatException e) {
+
+				}
+			}
+		}
+
+		public boolean isEnabled() {
+			return enabled;
+		}
+
+		public boolean apply(int d) {
+			if (!enabled) {
+				return false;
+			}
+
+			if (!allowedDimensions.isEmpty() && !allowedDimensions.contains(d)) {
+				return false;
+			} else if (blockedDimensions.contains(d)) {
+				return false;
+			}
+
+			return true;
+		}
+	}
+
+	private static final float[] SQRTS;
+	private FeatureDimensionManager general, moonPhase;
+	private float moonPhaseFactor;
+
+	static {
+		SQRTS = new float[16];
+		SQRTS[0] = 0;
+		for (int i = 1; i < 16; i++) {
+			SQRTS[i] = (float) Math.sqrt(i);
+		}
+	}
 
 	@Override
-	public void init() {
+	public void enable() {
 		MinecraftForge.EVENT_BUS.register(this);
+	}
+
+	@Override
+	public void disable() {
+		MinecraftForge.EVENT_BUS.unregister(this);
 	}
 
 	@Override
@@ -50,25 +109,8 @@ public class MageTrueDarkness implements IMagePlugin {
 
 	@Override
 	public void onConfigReload(Configuration config) {
-		String allowedDimensionsStr = config.getString("allowedDimensions", "general", "", "Comma-delimited list of dimensions in which True Darkness is enabled. If empty, no whitelisting is applied!");
-		String blockedDimensionsStr = config.getString("blockedDimensions", "general", "", "Comma-delimited list of dimensions in which True Darkness is disabled.");
-
-		allowedDimensions.clear();
-		blockedDimensions.clear();
-		for (String s : allowedDimensionsStr.split(",")) {
-			try {
-				allowedDimensions.add(Integer.parseInt(s.trim()));
-			} catch (NumberFormatException e) {
-
-			}
-		}
-		for (String s : blockedDimensionsStr.split(",")) {
-			try {
-				blockedDimensions.add(Integer.parseInt(s.trim()));
-			} catch (NumberFormatException e) {
-
-			}
-		}
+		general = new FeatureDimensionManager(config, "general", true);
+		moonPhase = new FeatureDimensionManager(config, "moonPhase", false);
 	}
 
 	@SubscribeEvent(priority = EventPriority.LOWEST)
@@ -76,15 +118,17 @@ public class MageTrueDarkness implements IMagePlugin {
 		// sky=0,block=0 - darkness
 		WorldClient world = Minecraft.getMinecraft().world;
 		int d = world.provider.getDimension();
-		if (!allowedDimensions.isEmpty() && !allowedDimensions.contains(d)) {
-			return;
-		}
-		if (blockedDimensions.contains(d)) {
+		if (!general.apply(d)) {
 			return;
 		}
 
+		float subtractedBrightness = 1.0f;
+		if (moonPhase.apply(d)) {
+			subtractedBrightness = 1.0f - world.getCurrentMoonPhaseFactor();
+		}
+
 		float sunBrightnessAssumed = world.getSunBrightness(1.0f);
-		float sunBrightness = MathHelper.clamp((sunBrightnessAssumed - 0.2f) / 0.8f, 0.0f, 1.0f);
+		float sunBrightness = MathHelper.clamp((sunBrightnessAssumed - (0.2f * subtractedBrightness)) / (1.0f - (0.2f * subtractedBrightness)), 0.0f, 1.0f);
 
 		// other colors - rescaled to match
 		int[] lightmap = event.getLightmap();
@@ -100,11 +144,11 @@ public class MageTrueDarkness implements IMagePlugin {
 
 		float brightnessMultiplier = sunBrightness / sunBrightnessAssumed;
 
-		for (int sky = 0; sky < 16; sky++) {
-			for (int block = 0; block < 15; block++) {
-				// lmul = brightnessMultiplier..1.0 for block=0..15 inclusive
-				// but we want to be slightly more curvaceous about it
-				float lmul = brightnessMultiplier + ((1.0f - brightnessMultiplier) * (MathHelper.sqrt(block) / 4.0f));
+		for (int block = 0; block < 15; block++) {
+			// lmul = brightnessMultiplier..1.0 for block=0..15 inclusive
+			// but we want to be slightly more curvaceous about it
+			float lmul = brightnessMultiplier + ((1.0f - brightnessMultiplier) * (SQRTS[block] / 4.0f));
+			for (int sky = 0; sky < 16; sky++) {
 				float[] color = Colorspaces.convertFromRGB(lightmap[sky * 16 + block], Colorspace.LAB);
 				color[0] *= lmul;
 				lightmap[sky * 16 + block] = Colorspaces.convertToRGB(color, Colorspace.LAB) | 0xFF000000;

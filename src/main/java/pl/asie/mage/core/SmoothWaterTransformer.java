@@ -36,7 +36,7 @@ public class SmoothWaterTransformer implements IClassTransformer {
 		MethodNode methodNode = new MethodNode(Opcodes.ACC_PUBLIC, methodName, "(Lnet/minecraft/block/state/IBlockState;)Z", null, null);
 		LabelNode l0 = new LabelNode(new Label());
 		methodNode.instructions.add(l0);
-		methodNode.instructions.add(new FieldInsnNode(Opcodes.GETSTATIC, "pl/asie/mage/plugins/smoothwater/MageSmoothWater", "isActive", "Z"));
+		methodNode.instructions.add(new FieldInsnNode(Opcodes.GETSTATIC, "pl/asie/mage/plugins/MageSmoothWater", "isActive", "Z"));
 		LabelNode l1 = new LabelNode(new Label());
 		methodNode.instructions.add(new JumpInsnNode(Opcodes.IFNE, l1));
 		methodNode.instructions.add(new VarInsnNode(Opcodes.ALOAD, 0));
@@ -71,7 +71,7 @@ public class SmoothWaterTransformer implements IClassTransformer {
 		public void visitMethodInsn(int opcode, String owner, String name,
 		                            String desc, boolean itf) {
 			if ("<init>".equals(name) && "net/minecraft/block/BlockLiquid".equals(owner)) {
-				super.visitMethodInsn(opcode, "pl/asie/mage/plugins/smoothwater/BlockLiquidForged", name, desc, itf);
+				super.visitMethodInsn(opcode, "pl/asie/mage/core/water/BlockLiquidForged", name, desc, itf);
 			} else {
 				super.visitMethodInsn(opcode, owner, name, desc, itf);
 			}
@@ -86,7 +86,7 @@ public class SmoothWaterTransformer implements IClassTransformer {
 		@Override
 		public void visit(int version, int access, String name, String signature,
 		                  String superName, String[] interfaces) {
-			super.visit(version, access, name, signature, "pl/asie/mage/plugins/smoothwater/BlockLiquidForged", interfaces);
+			super.visit(version, access, name, signature, "pl/asie/mage/core/water/BlockLiquidForged", interfaces);
 		}
 
 		@Override

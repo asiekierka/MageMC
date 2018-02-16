@@ -22,7 +22,7 @@ package pl.asie.mage.core;
 import com.elytradev.mini.MiniCoremod;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 
-@IFMLLoadingPlugin.TransformerExclusions({"com.elytradev.mini", "pl.asie.mage.core", "pl.asie.mage.plugins.smoothwater"})
+@IFMLLoadingPlugin.TransformerExclusions({"com.elytradev.mini", "pl.asie.mage.core"})
 @IFMLLoadingPlugin.SortingIndex(1001)
 public class MageCoremod extends MiniCoremod {
 	public MageCoremod() {

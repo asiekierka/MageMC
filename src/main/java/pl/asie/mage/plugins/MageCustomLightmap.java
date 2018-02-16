@@ -49,7 +49,7 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.Collection;
 
-@MageApprentice(value = "mage:customLightmap", description = "Adds MCPatcher-compatible custom lightmap support.")
+@MageApprentice(value = "mage:customLightmap", description = "Adds MCPatcher-compatible custom lightmap support.", canDisableRuntime = true)
 public class MageCustomLightmap implements IMagePlugin {
 	private final TIntObjectMap<BufferedImage> images = new TIntObjectHashMap<>();
 
@@ -75,8 +75,13 @@ public class MageCustomLightmap implements IMagePlugin {
 	}
 
 	@Override
-	public void init() {
+	public void enable() {
 		MinecraftForge.EVENT_BUS.register(this);
+	}
+
+	@Override
+	public void disable() {
+		MinecraftForge.EVENT_BUS.unregister(this);
 	}
 
 	@Override

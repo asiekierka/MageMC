@@ -73,7 +73,7 @@ public class MageMCPatcherCustomColors implements IMagePlugin {
 	}
 
 	@Override
-	public void init() {
+	public void enable() {
 		MinecraftForge.EVENT_BUS.register(this);
 	}
 

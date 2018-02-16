@@ -105,7 +105,7 @@ public class MageMod implements IResourceManagerReloadListener {
 		}
 
 		for (IMagePlugin plugin : pluginSet) {
-			plugin.init();
+			plugin.enable();
 		}
 	}
 
