@@ -123,9 +123,7 @@ public class MageTrueDarkness implements IMagePlugin {
 		}
 
 		float subtractedBrightness = 1.0f;
-		if (moonPhase.apply(d)) {
-			subtractedBrightness = 1.0f - world.getCurrentMoonPhaseFactor();
-		}
+		boolean moonPhaseA = moonPhase.apply(d);
 
 		float sunBrightnessAssumed = world.getSunBrightness(1.0f);
 		float sunBrightness = MathHelper.clamp((sunBrightnessAssumed - (0.2f * subtractedBrightness)) / (1.0f - (0.2f * subtractedBrightness)), 0.0f, 1.0f);
@@ -142,13 +140,19 @@ public class MageTrueDarkness implements IMagePlugin {
 			return;
 		}
 
-		float brightnessMultiplier = sunBrightness / sunBrightnessAssumed;
+		float brightnessMultiplierStart = sunBrightness / sunBrightnessAssumed;
+		float brightnessMultiplierEnd = sunBrightness / sunBrightnessAssumed;
+		if (moonPhaseA) {
+			brightnessMultiplierEnd = brightnessMultiplierEnd + ((sunBrightnessAssumed - sunBrightness) / sunBrightnessAssumed) * world.getCurrentMoonPhaseFactor();
+		}
+
 
 		for (int block = 0; block < 15; block++) {
 			// lmul = brightnessMultiplier..1.0 for block=0..15 inclusive
 			// but we want to be slightly more curvaceous about it
-			float lmul = brightnessMultiplier + ((1.0f - brightnessMultiplier) * (SQRTS[block] / 4.0f));
 			for (int sky = 0; sky < 16; sky++) {
+				float brightnessMultiplier = ((brightnessMultiplierStart * (15 - sky)) + (brightnessMultiplierEnd * sky)) / 15f;
+				float lmul = brightnessMultiplier + ((1.0f - brightnessMultiplier) * (SQRTS[block] / 4.0f));
 				float[] color = Colorspaces.convertFromRGB(lightmap[sky * 16 + block], Colorspace.LAB);
 				color[0] *= lmul;
 				lightmap[sky * 16 + block] = Colorspaces.convertToRGB(color, Colorspace.LAB) | 0xFF000000;
