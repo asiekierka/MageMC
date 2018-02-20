@@ -26,7 +26,7 @@ import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 @IFMLLoadingPlugin.SortingIndex(1001)
 public class MageCoremod extends MiniCoremod {
 	public MageCoremod() {
-		super(EntityRendererTransformer.class, SmoothWaterTransformer.class);
+		super(EntityRendererTransformer.class, SmoothWaterTransformer.class, TextureAtlasSpriteTransformer.class);
 	}
 
 	@Override
