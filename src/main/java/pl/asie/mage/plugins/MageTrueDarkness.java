@@ -23,6 +23,7 @@ import gnu.trove.set.TIntSet;
 import gnu.trove.set.hash.TIntHashSet;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.WorldClient;
+import net.minecraft.init.MobEffects;
 import net.minecraft.util.math.MathHelper;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.config.Configuration;
@@ -122,6 +123,15 @@ public class MageTrueDarkness implements IMagePlugin {
 			return;
 		}
 
+		if (world.getLastLightningBolt() > 0) {
+			return;
+		}
+
+		boolean isNightVisionActive = Minecraft.getMinecraft().player.isPotionActive(MobEffects.NIGHT_VISION);
+		if (isNightVisionActive) {
+			return;
+		}
+
 		float subtractedBrightness = 1.0f;
 		boolean moonPhaseA = moonPhase.apply(d);
 
@@ -145,7 +155,6 @@ public class MageTrueDarkness implements IMagePlugin {
 		if (moonPhaseA) {
 			brightnessMultiplierEnd = brightnessMultiplierEnd + ((sunBrightnessAssumed - sunBrightness) / sunBrightnessAssumed) * world.getCurrentMoonPhaseFactor();
 		}
-
 
 		for (int block = 0; block < 15; block++) {
 			// lmul = brightnessMultiplier..1.0 for block=0..15 inclusive
