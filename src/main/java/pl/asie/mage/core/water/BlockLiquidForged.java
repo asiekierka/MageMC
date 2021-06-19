@@ -19,6 +19,7 @@
 
 package pl.asie.mage.core.water;
 
+import git.jbredwards.fluidlogged_api.asm.ASMHooks;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
@@ -28,13 +29,18 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.common.property.IExtendedBlockState;
+import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fluids.BlockFluidBase;
 import net.minecraftforge.fluids.IFluidBlock;
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
 import pl.asie.mage.plugins.MageSmoothWater;
 
 import javax.annotation.Nonnull;
 
 public abstract class BlockLiquidForged extends BlockLiquid {
+	private static final boolean isFluidloggedApi = Loader.isModLoaded("fluidlogged_api");
+	
 	protected BlockLiquidForged(Material materialIn) {
 		super(materialIn);
 	}
@@ -127,12 +133,16 @@ public abstract class BlockLiquidForged extends BlockLiquid {
 			return oldState;
 		}
 
+		Fluid fluid = (blockMaterial == Material.WATER ? FluidRegistry.WATER : FluidRegistry.LAVA);
 		IExtendedBlockState state = (IExtendedBlockState) oldState;
 		state = state.withProperty(BlockFluidBase.FLOW_DIRECTION, (float)getFlowDirection(worldIn, pos));
 		IBlockState[][] upBlockState = new IBlockState[3][3];
 		float[][] height = new float[3][3];
 		upBlockState[1][1] = worldIn.getBlockState(pos.up());
-		height[1][1] = getFluidHeightForRender(worldIn, pos, upBlockState[1][1]);
+		
+		if(isFluidloggedApi) height[1][1] = ASMHooks.getFluidHeightForRender(fluid, worldIn, pos, upBlockState[1][1], 1, 1);
+		else                 height[1][1] = getFluidHeightForRender(worldIn, pos, upBlockState[1][1]);
+		
 		if (height[1][1] == 1) {
 			state = state.withProperty(BlockFluidBase.LEVEL_CORNERS[0], 1f)
 					.withProperty(BlockFluidBase.LEVEL_CORNERS[1], 1f)
@@ -145,24 +155,30 @@ public abstract class BlockLiquidForged extends BlockLiquid {
 					if (i != 1 || j != 1) {
 						BlockPos pos2 = pos.add(i - 1, 0, j - 1);
 						upBlockState[i][j] = worldIn.getBlockState(pos2.up());
-						height[i][j] = getFluidHeightForRender(worldIn, pos2, upBlockState[i][j]);
+						if(isFluidloggedApi) height[i][j] = ASMHooks.getFluidHeightForRender(fluid, worldIn, pos2, upBlockState[i][j], i, j);
+						else                 height[i][j] = getFluidHeightForRender(worldIn, pos2, upBlockState[i][j]);
 					}
 				}
 			}
 			for (int i = 0; i < 2; i++) {
 				for (int j = 0; j < 2; j++) {
-					corner[i][j] = getFluidHeightAverage(height[i][j], height[i][j + 1], height[i + 1][j], height[i + 1][j + 1]);
+					if(isFluidloggedApi) corner[i][j] = ASMHooks.getFluidHeightAverage(8f/9, i, j, height[i][j], height[i][j + 1], height[i + 1][j], height[i + 1][j + 1]);
+					else                 corner[i][j] = getFluidHeightAverage(height[i][j], height[i][j + 1], height[i + 1][j], height[i + 1][j + 1]);
 				}
 			}
 			//check for downflow above corners
-			boolean n = isFluid(upBlockState[0][1]);
-			boolean s = isFluid(upBlockState[2][1]);
-			boolean w = isFluid(upBlockState[1][0]);
-			boolean e = isFluid(upBlockState[1][2]);
-			if (n || w || isFluid(upBlockState[0][0])) corner[0][0] = 1;
-			if (n || e || isFluid(upBlockState[0][2])) corner[0][1] = 1;
-			if (s || w || isFluid(upBlockState[2][0])) corner[1][0] = 1;
-			if (s || e || isFluid(upBlockState[2][2])) corner[1][1] = 1;
+			boolean n =  (isFluidloggedApi ? ASMHooks.isFluid(upBlockState[0][1], fluid, worldIn, pos.north()) : isFluid(upBlockState[0][1]));
+            		boolean s =  (isFluidloggedApi ? ASMHooks.isFluid(upBlockState[2][1], fluid, worldIn, pos.south()) : isFluid(upBlockState[2][1]));
+            		boolean w =  (isFluidloggedApi ? ASMHooks.isFluid(upBlockState[1][0], fluid, worldIn, pos.west())  : isFluid(upBlockState[1][0]));
+            		boolean e =  (isFluidloggedApi ? ASMHooks.isFluid(upBlockState[1][2], fluid, worldIn, pos.east())  : isFluid(upBlockState[1][2]));
+            		boolean nw = (isFluidloggedApi ? ASMHooks.isFluid(upBlockState[0][0], fluid, worldIn, pos.north().west()) : isFluid(upBlockState[0][0]));
+            		boolean ne = (isFluidloggedApi ? ASMHooks.isFluid(upBlockState[0][2], fluid, worldIn, pos.north().east()) : isFluid(upBlockState[0][2]));
+            		boolean sw = (isFluidloggedApi ? ASMHooks.isFluid(upBlockState[2][0], fluid, worldIn, pos.south().west()) : isFluid(upBlockState[2][0]));
+            		boolean se = (isFluidloggedApi ? ASMHooks.isFluid(upBlockState[2][2], fluid, worldIn, pos.south().east()) : isFluid(upBlockState[2][2]));
+            		if(nw || n || w) corner[0][0] = 1;
+            		if(ne || n || e) corner[0][1] = 1;
+            		if(sw || s || w) corner[1][0] = 1;
+            		if(se || s || e) corner[1][1] = 1;
 
 			state = state.withProperty(BlockFluidBase.LEVEL_CORNERS[0], corner[0][0])
 					.withProperty(BlockFluidBase.LEVEL_CORNERS[1], corner[0][1])
