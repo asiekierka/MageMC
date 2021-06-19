@@ -118,6 +118,9 @@ artifacts {
 dependencies {
 	compile 'com.elytradev:mini:0.2-SNAPSHOT'
 	shadow 'com.elytradev:mini:0.2-SNAPSHOT'
+	//fluidlogged api stuff
+	provided 'com.github.jbredwards:Fluidlogged-API:5f90082a9e'
+    	compile 'com.github.jbredwards:Fluidlogged-API:5f90082a9e'
 }
 
 task signShadowJar(type: SignJar, dependsOn: shadowJar) {
