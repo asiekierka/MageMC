@@ -36,13 +36,12 @@ minecraft {
 }
 
 repositories {
-	maven {
-		url = 'https://repo.elytradev.com'
-	}
-    ivy {
-        name 'asie dependency mirror'
-        artifactPattern "http://asie.pl/javadeps/[module]-[revision](-[classifier]).[ext]"
-    }
+	maven { url = 'https://repo.elytradev.com' }
+	maven { url 'https://jitpack.io' }
+    	ivy {
+        	name 'asie dependency mirror'
+        	artifactPattern "http://asie.pl/javadeps/[module]-[revision](-[classifier]).[ext]"
+    	}
 }
 
 dependencies {
